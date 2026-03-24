@@ -1,0 +1,12 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "type": "command",
+        "command": "./.github/hooks/scripts/check-typescript-errors.sh",
+        "timeout": 30,
+        "description": "Validate TypeScript compilation after tool use. Blocks further execution if errors are present."
+      }
+    ]
+  }
+}
