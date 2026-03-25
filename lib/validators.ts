@@ -1,75 +1,92 @@
 import { z } from 'zod';
-import { DRAW_CONFIG, CHARITY_CONFIG } from './constants';
+import {
+  GOLF_SCORE_MIN,
+  GOLF_SCORE_MAX,
+  CHARITY_PERCENTAGE_MIN,
+  CHARITY_PERCENTAGE_MAX,
+} from './constants';
 
-// Authentication Schemas
-export const SignupSchema = z.object({
+/**
+ * Auth validation schemas
+ */
+export const signupSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  fullName: z.string().optional(),
+  fullName: z.string().min(1, 'Name is required').max(100, 'Name too long'),
 });
 
-export const LoginSchema = z.object({
+export type SignupInput = z.infer<typeof signupSchema>;
+
+export const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(1, 'Password is required'),
 });
 
-// Golf Score Schemas
-export const ScoreSchema = z.object({
+export type LoginInput = z.infer<typeof loginSchema>;
+
+/**
+ * Score validation schemas
+ */
+export const scoreSchema = z.object({
   score: z
     .number()
     .int('Score must be a whole number')
-    .min(DRAW_CONFIG.MIN_SCORE, `Minimum score is ${DRAW_CONFIG.MIN_SCORE}`)
-    .max(DRAW_CONFIG.MAX_SCORE, `Maximum score is ${DRAW_CONFIG.MAX_SCORE}`),
-  playedAt: z.string().datetime('Invalid date format'),
+    .min(GOLF_SCORE_MIN, `Score must be at least ${GOLF_SCORE_MIN}`)
+    .max(GOLF_SCORE_MAX, `Score must be at most ${GOLF_SCORE_MAX}`),
+  playedAt: z
+    .string()
+    .datetime('Invalid date format')
+    .refine((date) => new Date(date) <= new Date(), {
+      message: 'Score date cannot be in the future',
+    }),
 });
 
-export const ScoreListSchema = z.object({
-  scores: z.array(ScoreSchema),
-});
+export type ScoreInput = z.infer<typeof scoreSchema>;
 
-// Profile Update Schemas
-export const ProfileUpdateSchema = z.object({
-  fullName: z.string().optional(),
-  charityId: z.string().uuid('Invalid charity ID').optional(),
+/**
+ * Profile update validation
+ */
+export const profileUpdateSchema = z.object({
+  fullName: z.string().min(1).max(100).optional(),
+  charityId: z.string().uuid().nullable().optional(),
   charityPercentage: z
     .number()
-    .int('Percentage must be a whole number')
-    .min(CHARITY_CONFIG.MIN_PERCENTAGE)
-    .max(CHARITY_CONFIG.MAX_PERCENTAGE)
+    .int()
+    .min(CHARITY_PERCENTAGE_MIN, `Minimum charity % is ${CHARITY_PERCENTAGE_MIN}`)
+    .max(CHARITY_PERCENTAGE_MAX, `Maximum charity % is ${CHARITY_PERCENTAGE_MAX}`)
     .optional(),
 });
 
-// Charity Schemas
-export const CharitySchema = z.object({
-  id: z.string().uuid(),
-  name: z.string(),
-  description: z.string().nullable(),
-  image_url: z.string().url().nullable(),
-  is_featured: z.boolean(),
-  is_active: z.boolean(),
+export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>;
+
+/**
+ * Stripe checkout validation
+ */
+export const checkoutSchema = z.object({
+  priceId: z.string().refine(
+    (id) => id.startsWith('price_'),
+    'Invalid price ID'
+  ),
 });
 
-// Stripe Schemas
-export const CheckoutSessionSchema = z.object({
-  plan: z.enum(['monthly', 'yearly']),
-  charityId: z.string().uuid().optional(),
-});
+export type CheckoutInput = z.infer<typeof checkoutSchema>;
 
-// Admin Draw Schemas
-export const DrawSimulateSchema = z.object({
+/**
+ * Draw validation schemas
+ */
+export const drawSimulationSchema = z.object({
   drawType: z.enum(['random', 'algorithmic']),
+  drawDate: z.string().date(),
 });
 
-export const DrawPublishSchema = z.object({
-  drawDate: z.string().datetime('Invalid date format'),
-  drawType: z.enum(['random', 'algorithmic']),
+export type DrawSimulationInput = z.infer<typeof drawSimulationSchema>;
+
+/**
+ * Results validation
+ */
+export const resultUpdateSchema = z.object({
+  paymentStatus: z.enum(['pending', 'paid', 'rejected']),
+  proofUrl: z.string().url().optional().nullable(),
 });
 
-// Type exports for runtime validation
-export type SignupInput = z.infer<typeof SignupSchema>;
-export type LoginInput = z.infer<typeof LoginSchema>;
-export type ScoreInput = z.infer<typeof ScoreSchema>;
-export type ProfileUpdateInput = z.infer<typeof ProfileUpdateSchema>;
-export type CheckoutSessionInput = z.infer<typeof CheckoutSessionSchema>;
-export type DrawSimulateInput = z.infer<typeof DrawSimulateSchema>;
-export type DrawPublishInput = z.infer<typeof DrawPublishSchema>;
+export type ResultUpdateInput = z.infer<typeof resultUpdateSchema>;

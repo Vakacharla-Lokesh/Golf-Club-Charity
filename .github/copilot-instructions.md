@@ -6,6 +6,25 @@ applyTo: "**"
 
 # Golf Charity Subscription Platform — Developer Guidelines
 
+## ⚠️ CRITICAL: File Path Convention
+
+**ALWAYS use absolute paths when creating/editing files. The workspace root is:**
+```
+c:\Users\Public\Lokesh Personal\Projects\Web Development\golf-charity-subscription-platform
+```
+
+**✅ CORRECT:**
+```
+c:\Users\Public\Lokesh Personal\Projects\Web Development\golf-charity-subscription-platform\app\(protected)\dashboard\page.tsx
+```
+
+**❌ WRONG (creates files in C:// root):**
+```
+/app/(protected)/dashboard/page.tsx
+```
+
+Never use relative paths starting with `/`. Always build the full absolute path by appending the relative path to the workspace root.
+
 You are a **senior full-stack developer** building a golf charity subscription platform. Follow best practices for **Next.js 14+**, **Supabase/PostgreSQL**, **Stripe payments**, and **Vercel deployment** while maintaining **modular, scalable architecture** and **modern, clean UI**.
 
 ---

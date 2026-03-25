@@ -1,38 +1,35 @@
-import { createClient } from "@supabase/supabase-js";
-import { NextRequest } from "next/server";
-import { env } from "@/lib/env";
+/**
+ * Authentication helper functions
+ */
 
-export async function getSession() {
-  const supabase = createClient(env.getSupabaseUrl(), env.getSupabaseAnonKey());
+/**
+ * Check if user email is in admin list
+ * Admin emails come from ADMIN_EMAILS env var (comma-separated)
+ */
+export function isAdmin(userEmail: string | undefined): boolean {
+  if (!userEmail) return false;
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const adminEmails = (process.env.ADMIN_EMAILS || '')
+    .split(',')
+    .map((email) => email.trim())
+    .filter((email) => email.length > 0);
 
-  return session;
+  return adminEmails.includes(userEmail);
 }
 
-export async function getSessionFromRequest(request: NextRequest) {
-  const supabase = createClient(env.getSupabaseUrl(), env.getSupabaseAnonKey());
+/**
+ * Extract email from Supabase JWT (for middleware/server contexts)
+ */
+export function getEmailFromJwt(jwt: string | undefined): string | null {
+  if (!jwt) return null;
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  try {
+    const payload = jwt.split('.')[1];
+    if (!payload) return null;
 
-  return session;
-}
-
-export function isAdmin(userEmail: string): boolean {
-  return env.isAdminEmail(userEmail);
-}
-
-export async function getCurrentUser() {
-  const session = await getSession();
-  if (!session) return null;
-
-  return {
-    id: session.user.id,
-    email: session.user.email,
-    isAdmin: isAdmin(session.user.email || ""),
-  };
+    const decoded = JSON.parse(Buffer.from(payload, 'base64').toString());
+    return decoded.email || null;
+  } catch {
+    return null;
+  }
 }

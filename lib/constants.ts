@@ -1,84 +1,89 @@
-// Prize Pool Distribution Percentages
-export const PRIZE_POOL_PERCENTAGES = {
-  TIER_5: 0.4, // 40% for matching all 5 numbers
-  TIER_4: 0.35, // 35% for matching 4 numbers
-  TIER_3: 0.25, // 25% for matching 3 numbers
+/**
+ * Constants for Golf Charity Platform
+ * All magic numbers defined here for easy adjustment
+ */
+
+// ============================================================================
+// GOLF SCORE CONSTRAINTS
+// ============================================================================
+export const GOLF_SCORE_MIN = 1;
+export const GOLF_SCORE_MAX = 45;
+export const MAX_SCORES_PER_USER = 5;
+
+// ============================================================================
+// CHARITY CONTRIBUTION
+// ============================================================================
+export const CHARITY_PERCENTAGE_MIN = 10;
+export const CHARITY_PERCENTAGE_MAX = 100;
+export const CHARITY_PERCENTAGE_DEFAULT = 10;
+
+// ============================================================================
+// PRIZE POOL SPLIT (percentage of total pool)
+// ============================================================================
+export const PRIZE_SPLIT = {
+  tier5: 0.4, // 40% for 5-match winners
+  tier4: 0.35, // 35% for 4-match winners
+  tier3: 0.25, // 25% for 3-match winners
 } as const;
 
-// Draw Configuration
-export const DRAW_CONFIG = {
-  MIN_WINNING_NUMBERS: 5,
-  MIN_SCORE: 1,
-  MAX_SCORE: 45,
-  MAX_SCORES_PER_USER: 5,
-  MIN_SCORES_FOR_DRAW: 1,
+// Verify totals
+if (
+  Math.abs(PRIZE_SPLIT.tier5 + PRIZE_SPLIT.tier4 + PRIZE_SPLIT.tier3 - 1.0) >
+  0.001
+) {
+  throw new Error("Prize split percentages must sum to 1.0");
+}
+
+// ============================================================================
+// STRIPE CONFIGURATION
+// ============================================================================
+export const STRIPE_PLAN_MONTHLY =
+  process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID || "price_monthly_test";
+export const STRIPE_PLAN_YEARLY =
+  process.env.NEXT_PUBLIC_STRIPE_YEARLY_PRICE_ID || "price_yearly_test";
+
+// Amount in smallest currency unit (paise for INR)
+export const STRIPE_AMOUNT_MONTHLY = 50000; // ₹500
+export const STRIPE_AMOUNT_YEARLY = 500000; // ₹5000
+
+// ============================================================================
+// SUBSCRIPTION STATUS
+// ============================================================================
+export const SUBSCRIPTION_STATUSES = {
+  ACTIVE: "active",
+  INACTIVE: "inactive",
+  CANCELLED: "cancelled",
+  LAPSED: "lapsed",
 } as const;
 
-// Charity Configuration
-export const CHARITY_CONFIG = {
-  MIN_PERCENTAGE: 10,
-  MAX_PERCENTAGE: 100,
-  DEFAULT_PERCENTAGE: 10,
+export type SubscriptionStatus =
+  (typeof SUBSCRIPTION_STATUSES)[keyof typeof SUBSCRIPTION_STATUSES];
+
+// ============================================================================
+// DRAW STATUS
+// ============================================================================
+export const DRAW_STATUSES = {
+  DRAFT: "draft",
+  SIMULATED: "simulated",
+  PUBLISHED: "published",
 } as const;
 
-// Subscription Plans (will be synced with Stripe)
-export const SUBSCRIPTION_PLANS = {
-  MONTHLY: 'monthly',
-  YEARLY: 'yearly',
+export type DrawStatus = (typeof DRAW_STATUSES)[keyof typeof DRAW_STATUSES];
+
+// ============================================================================
+// PAYMENT STATUS
+// ============================================================================
+export const PAYMENT_STATUSES = {
+  PENDING: "pending",
+  PAID: "paid",
+  REJECTED: "rejected",
 } as const;
 
-// Subscription Status
-export const SUBSCRIPTION_STATUS = {
-  ACTIVE: 'active',
-  INACTIVE: 'inactive',
-  LAPSED: 'lapsed',
-  CANCELLED: 'cancelled',
-} as const;
+export type PaymentStatus =
+  (typeof PAYMENT_STATUSES)[keyof typeof PAYMENT_STATUSES];
 
-// Payment Status
-export const PAYMENT_STATUS = {
-  PENDING: 'pending',
-  PAID: 'paid',
-} as const;
-
-// Draw Status
-export const DRAW_STATUS = {
-  DRAFT: 'draft',
-  SIMULATED: 'simulated',
-  PUBLISHED: 'published',
-} as const;
-
-// Draw Types
-export const DRAW_TYPES = {
-  RANDOM: 'random',
-  ALGORITHMIC: 'algorithmic',
-} as const;
-
-// Match Types (number of correct scores)
-export const MATCH_TYPES = {
-  THREE: 3,
-  FOUR: 4,
-  FIVE: 5,
-} as const;
-
-// API Routes
-export const API_ROUTES = {
-  // Auth
-  AUTH_CALLBACK: '/api/auth/callback',
-  
-  // Scores
-  SCORES_SUBMIT: '/api/scores/submit',
-  SCORES_LIST: '/api/scores/list',
-  SCORES_UPSERT: '/api/scores/upsert',
-  
-  // Stripe
-  STRIPE_CHECKOUT: '/api/stripe/create-checkout',
-  STRIPE_WEBHOOK: '/api/webhooks/stripe',
-  
-  // Admin
-  ADMIN_USERS: '/api/admin/users',
-  ADMIN_DRAWS_SIMULATE: '/api/admin/draw/simulate',
-  ADMIN_DRAWS_PUBLISH: '/api/admin/draw/publish',
-  ADMIN_CHARITIES: '/api/admin/charities',
-  ADMIN_WINNERS: '/api/admin/winners',
-} as const;
+// ============================================================================
+// PAGINATION
+// ============================================================================
+export const DEFAULT_PAGE_SIZE = 10;
+export const MAX_PAGE_SIZE = 100;
