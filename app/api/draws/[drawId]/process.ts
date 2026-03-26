@@ -67,13 +67,18 @@ export async function POST(
     `
     );
 
+    interface UserScoreRow {
+      score: number;
+      user_id: string;
+    }
+
     interface UserScoresGrouped {
       [userId: string]: number[];
     }
 
     // Group scores by user, keep up to 5 most recent
     const userScoresMap: UserScoresGrouped = {};
-    (userScores || []).forEach((record: any) => {
+    ((userScores || []) as UserScoreRow[]).forEach((record) => {
       const userId = record.user_id;
       if (!userScoresMap[userId]) {
         userScoresMap[userId] = [];

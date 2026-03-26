@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
           charity_percentage: validated.charityPercentage,
         }),
       })
-      .eq('id', userId)
+      .eq('auth_user_id', userId)
       .select()
       .single();
 

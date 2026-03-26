@@ -4,6 +4,7 @@ import {
   GOLF_SCORE_MAX,
   CHARITY_PERCENTAGE_MIN,
   CHARITY_PERCENTAGE_MAX,
+  CHARITY_PERCENTAGE_STEP,
 } from './constants';
 
 /**
@@ -54,6 +55,10 @@ export const profileUpdateSchema = z.object({
     .int()
     .min(CHARITY_PERCENTAGE_MIN, `Minimum charity % is ${CHARITY_PERCENTAGE_MIN}`)
     .max(CHARITY_PERCENTAGE_MAX, `Maximum charity % is ${CHARITY_PERCENTAGE_MAX}`)
+    .refine(
+      (value) => value % CHARITY_PERCENTAGE_STEP === 0,
+      `Charity % must increase in steps of ${CHARITY_PERCENTAGE_STEP}`
+    )
     .optional(),
 });
 

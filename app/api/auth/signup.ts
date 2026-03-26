@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/db';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import { signupSchema } from '@/lib/validators';
 import { z } from 'zod';
 
@@ -9,6 +10,29 @@ export async function POST(request: NextRequest) {
 
     // Validate input
     const validated = signupSchema.parse(body);
+
+    // Create Supabase client with proper session handling
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch {
+              // Ignore setAll errors in Server Components
+            }
+          },
+        },
+      }
+    );
 
     // Sign up with Supabase Auth
     const { data, error } = await supabase.auth.signUp({

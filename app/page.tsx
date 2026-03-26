@@ -15,25 +15,35 @@ export default function HomePage() {
   useEffect(() => {
     // Check if user is authenticated
     const checkAuth = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      setIsAuthenticated(!!session);
-      setIsChecking(false);
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        setIsAuthenticated(!!session);
+      } catch (error) {
+        // Session check failed (no session exists), user is not authenticated
+        setIsAuthenticated(false);
+      } finally {
+        setIsChecking(false);
+      }
     };
 
     checkAuth();
 
     // Fetch featured charities
     const fetchCharities = async () => {
-      const { data } = await supabase
-        .from('charities')
-        .select('*')
-        .eq('is_active', true)
-        .eq('is_featured', true)
-        .limit(3);
+      try {
+        const { data } = await supabase
+          .from('charities')
+          .select('*')
+          .eq('is_active', true)
+          .eq('is_featured', true)
+          .limit(3);
 
-      setFeaturedCharities(data || []);
+        setFeaturedCharities(data || []);
+      } catch (error) {
+        console.error('Error fetching charities:', error);
+      }
     };
 
     fetchCharities();

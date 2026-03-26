@@ -72,19 +72,19 @@ export function ScoreInput({
   const isSubmitting = isSending || isLoading;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
-      <h3 className="font-semibold text-gray-900">Add Golf Score</h3>
+    <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border-2 border-blue-200 bg-white p-5">
+      <h3 className="text-lg font-bold text-gray-900">Add Golf Score</h3>
 
       {error && (
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
-          {error}
+        <div className="rounded-lg bg-red-50 p-3.5 border border-red-200 text-sm font-medium text-red-700">
+          ❌ {error}
         </div>
       )}
 
       <div className="grid grid-cols-2 gap-3">
         {/* Score Input */}
         <div>
-          <label htmlFor="score" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="score" className="block text-sm font-semibold text-gray-800">
             Score
           </label>
           <input
@@ -95,14 +95,14 @@ export function ScoreInput({
             value={score}
             onChange={(e) => setScore(e.target.value)}
             disabled={isSubmitting || disabled}
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-200"
+            className="mt-2 w-full rounded-lg border-2 border-blue-200 px-3 py-2.5 text-sm font-medium text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:bg-gray-100 disabled:text-gray-500"
             placeholder="1-45"
           />
         </div>
 
         {/* Date Input */}
         <div>
-          <label htmlFor="playedAt" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="playedAt" className="block text-sm font-semibold text-gray-800">
             Date
           </label>
           <input
@@ -111,7 +111,7 @@ export function ScoreInput({
             value={playedAt}
             onChange={(e) => setPlayedAt(e.target.value)}
             disabled={isSubmitting || disabled}
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-200"
+            className="mt-2 w-full rounded-lg border-2 border-blue-200 px-3 py-2.5 text-sm font-medium text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:bg-gray-100 disabled:text-gray-500"
           />
         </div>
       </div>
@@ -119,13 +119,20 @@ export function ScoreInput({
       <button
         type="submit"
         disabled={isSubmitting || disabled}
-        className="w-full rounded-lg bg-blue-600 py-2 font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+        className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 py-3 px-4 font-semibold text-white hover:from-blue-700 hover:to-blue-800 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition"
       >
-        {isSubmitting ? 'Saving...' : 'Add Score'}
+        {isSubmitting ? (
+          <span className="flex items-center justify-center gap-2">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            Saving...
+          </span>
+        ) : (
+          '+ Add Score'
+        )}
       </button>
 
-      <p className="text-xs text-gray-500">
-        Maximum 5 scores. Adding a 6th will replace the oldest.
+      <p className="text-xs text-gray-600 text-center">
+        💡 Maximum 5 scores. Adding a 6th will replace the oldest.
       </p>
     </form>
   );

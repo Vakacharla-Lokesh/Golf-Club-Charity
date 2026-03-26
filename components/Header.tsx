@@ -2,31 +2,28 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/lib/db';
 
 export function Header() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [email, setEmail] = useState('');
-
-  // Fetch user email on mount
-  useEffect(() => {
-    const getUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user?.email) {
-        setEmail(user.email);
-      }
-    };
-    getUser();
-  }, []);
 
   const handleLogout = async () => {
     setIsLoading(true);
-    await supabase.auth.signOut();
-    router.push('/login');
+    try {
+      // Clear from Supabase client
+      await supabase.auth.signOut();
+
+      // Clear cookies via API
+      await fetch('/api/auth/logout', { method: 'POST' });
+
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -34,7 +31,7 @@ export function Header() {
       <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
           <Link href="/dashboard" className="text-2xl font-bold text-blue-600">
-            ⛳ Golf Charity
+            Golf Charity
           </Link>
 
           <nav className="hidden space-x-6 md:flex">

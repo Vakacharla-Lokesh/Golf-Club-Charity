@@ -1,23 +1,45 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import {
+  getPublicSupabaseAnonKey,
+  getPublicSupabaseUrl,
+  getSupabaseServiceRoleKey,
+} from '@/lib/env';
 
 let supabaseClient: SupabaseClient | null = null;
 let supabaseAdminClient: SupabaseClient | null = null;
 
-function initSupabaseClient(): SupabaseClient {
+/**
+ * Browser-safe Supabase client (client-side)
+ * Single instance to avoid multiple GoTrueClient warnings
+ * persistSession: false because session is managed by proxy via HTTP-only cookies
+ * Use /api/auth/user to get the authenticated user server-side
+ */
+export function initSupabaseClient(): SupabaseClient {
   if (supabaseClient) return supabaseClient;
-  
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9';
 
-  supabaseClient = createClient(supabaseUrl, supabaseKey);
+  const supabaseUrl = getPublicSupabaseUrl();
+  const supabaseKey = getPublicSupabaseAnonKey();
+
+  supabaseClient = createClient(supabaseUrl, supabaseKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+
   return supabaseClient;
 }
 
-function initSupabaseAdminClient(): SupabaseClient {
+/**
+ * Server-side admin Supabase instance
+ * Uses service role key to bypass RLS
+ * ONLY for API routes, never expose to client
+ */
+export function initSupabaseAdminClient(): SupabaseClient {
   if (supabaseAdminClient) return supabaseAdminClient;
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder';
+  const supabaseUrl = getPublicSupabaseUrl();
+  const supabaseServiceKey = getSupabaseServiceRoleKey();
 
   supabaseAdminClient = createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
@@ -25,29 +47,17 @@ function initSupabaseAdminClient(): SupabaseClient {
       persistSession: false,
     },
   });
+
   return supabaseAdminClient;
 }
 
 /**
- * Client-side Supabase instance
- * Uses anon key with RLS enforcement
- * Safe for browser + API routes
+ * Lazy-loaded client instance for use in client components
+ * Call this function to get the singleton Supabase client
  */
-export const supabase = new Proxy({}, {
-  get: (target, prop) => {
-    const client = initSupabaseClient();
-    return (client as any)[prop];
-  },
-}) as unknown as SupabaseClient;
+export const supabase = initSupabaseClient();
 
 /**
- * Server-side admin Supabase instance
- * Uses service role key to bypass RLS
- * ONLY for API routes, never expose to client
+ * Lazy-loaded admin instance for API routes
  */
-export const supabaseAdmin = new Proxy({}, {
-  get: (target, prop) => {
-    const client = initSupabaseAdminClient();
-    return (client as any)[prop];
-  },
-}) as unknown as SupabaseClient;
+export const supabaseAdmin = initSupabaseAdminClient();

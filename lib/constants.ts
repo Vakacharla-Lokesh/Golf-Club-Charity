@@ -1,3 +1,8 @@
+import {
+  getPublicStripeMonthlyPriceId,
+  getPublicStripeYearlyPriceId,
+} from '@/lib/env';
+
 /**
  * Constants for Golf Charity Platform
  * All magic numbers defined here for easy adjustment
@@ -16,6 +21,7 @@ export const MAX_SCORES_PER_USER = 5;
 export const CHARITY_PERCENTAGE_MIN = 10;
 export const CHARITY_PERCENTAGE_MAX = 100;
 export const CHARITY_PERCENTAGE_DEFAULT = 10;
+export const CHARITY_PERCENTAGE_STEP = 10;
 
 // ============================================================================
 // PRIZE POOL SPLIT (percentage of total pool)
@@ -38,9 +44,9 @@ if (
 // STRIPE CONFIGURATION
 // ============================================================================
 export const STRIPE_PLAN_MONTHLY =
-  process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID || "price_monthly_test";
+  getPublicStripeMonthlyPriceId();
 export const STRIPE_PLAN_YEARLY =
-  process.env.NEXT_PUBLIC_STRIPE_YEARLY_PRICE_ID || "price_yearly_test";
+  getPublicStripeYearlyPriceId();
 
 // Amount in smallest currency unit (paise for INR)
 export const STRIPE_AMOUNT_MONTHLY = 50000; // ₹500

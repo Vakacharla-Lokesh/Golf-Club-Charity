@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/db';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 import { loginSchema } from '@/lib/validators';
+import { isAdmin } from '@/lib/auth';
 import { z } from 'zod';
 
 export async function POST(request: NextRequest) {
@@ -9,6 +11,29 @@ export async function POST(request: NextRequest) {
 
     // Validate input
     const validated = loginSchema.parse(body);
+
+    // Create Supabase client with proper session handling
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch {
+              // Ignore setAll errors in Server Components
+            }
+          },
+        },
+      }
+    );
 
     // Sign in with Supabase Auth
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -30,6 +55,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if user is admin
+    const adminStatus = isAdmin(data.user.email || '');
+
     return NextResponse.json(
       {
         success: true,
@@ -37,6 +65,8 @@ export async function POST(request: NextRequest) {
           id: data.user.id,
           email: data.user.email,
         },
+        session: data.session,
+        isAdmin: adminStatus,
       },
       { status: 200 }
     );

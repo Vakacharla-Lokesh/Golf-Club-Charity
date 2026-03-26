@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { supabase } from '@/lib/db';
 import { Profile, Charity, GolfScore } from '@/lib/types';
 import { SubscriptionStatus } from '@/components/SubscriptionStatus';
 import { CharitySelector } from '@/components/CharitySelector';
@@ -22,47 +21,69 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Get authenticated user
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
+        // Get authenticated user from server (uses HTTP-only cookies)
+        const userResponse = await fetch('/api/auth/user');
 
-        if (!user) {
+        if (!userResponse.ok) {
+          console.error('Failed to get user');
+          toast.error('Authentication error');
           router.push('/login');
           return;
         }
 
-        // Fetch profile
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
+        const { user } = await userResponse.json();
 
-        if (profileError || !profileData) {
-          console.error('Error fetching profile:', profileError);
+        if (!user) {
+          console.warn('No authenticated user found');
+          router.push('/login');
           return;
         }
 
-        setProfile(profileData);
+        console.log('Authenticated user:', user.id);
 
-        // Fetch charities
-        const { data: charitiesData } = await supabase
-          .from('charities')
-          .select('*')
-          .eq('is_active', true)
-          .order('is_featured', { ascending: false });
+        // Fetch profile from API (server-side with auth context)
+        const profileResponse = await fetch('/api/profile/get');
 
-        setCharities(charitiesData || []);
+        if (!profileResponse.ok) {
+          console.error('Failed to get profile');
+          toast.error('Failed to load profile');
+          return;
+        }
 
-        // Fetch scores
-        const { data: scoresData } = await supabase
-          .from('golf_scores')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('played_at', { ascending: false });
+        const { profile: resolvedProfile } = await profileResponse.json();
 
-        setScores(scoresData || []);
+        if (!resolvedProfile) {
+          console.warn('No profile found');
+          toast.error('Failed to load profile');
+          return;
+        }
+
+        console.log('Profile loaded:', resolvedProfile.id);
+        setProfile(resolvedProfile);
+
+        // Fetch charities from API
+        try {
+          const charitiesResponse = await fetch('/api/charities/list');
+          if (charitiesResponse.ok) {
+            const { data: charitiesData } = await charitiesResponse.json();
+            setCharities(charitiesData || []);
+            console.log('Loaded charities:', charitiesData?.length || 0);
+          }
+        } catch (error) {
+          console.error('Charities fetch error:', error);
+        }
+
+        // Fetch scores from API
+        try {
+          const scoresResponse = await fetch('/api/scores/list');
+          if (scoresResponse.ok) {
+            const { scores: scoresData } = await scoresResponse.json();
+            setScores(scoresData || []);
+            console.log('Loaded scores:', scoresData?.length || 0);
+          }
+        } catch (error) {
+          console.error('Scores fetch error:', error);
+        }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -77,7 +98,9 @@ export default function DashboardPage() {
     try {
       const response = await fetch('/api/profile/update-charity', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           charityId,
           charityPercentage: percentage,
@@ -85,48 +108,50 @@ export default function DashboardPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update charity');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update charity');
       }
 
       const { profile: updatedProfile } = await response.json();
       setProfile(updatedProfile);
+      toast.success('Charity selection saved');
     } catch (error) {
       console.error('Error updating charity:', error);
-      alert('Failed to update charity selection');
+      toast.error(error instanceof Error ? error.message : 'Failed to update charity selection');
     }
   };
 
   const handleScoreSaved = async () => {
-    // Refetch scores
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    if (!profile) return;
 
-    if (!user) return;
-
-    const { data: scoresData } = await supabase
-      .from('golf_scores')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('played_at', { ascending: false });
-
-    setScores(scoresData || []);
+    try {
+      const response = await fetch('/api/scores/list');
+      if (response.ok) {
+        const { scores: scoresData } = await response.json();
+        setScores(scoresData || []);
+      }
+    } catch (error) {
+      console.error('Error refreshing scores:', error);
+    }
   };
 
-  const handleSubscribeClick = async () => {
+  const handleSubscribeClick = async (plan: 'monthly' | 'yearly' = 'monthly') => {
     try {
-      // For now, open checkout for monthly plan
-      // In a real app, user would select plan
+      const priceId = plan === 'yearly' ? STRIPE_PLAN_YEARLY : STRIPE_PLAN_MONTHLY;
+      
       const response = await fetch('/api/stripe/create-checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          priceId: STRIPE_PLAN_MONTHLY,
+          priceId,
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create checkout session');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create checkout session');
       }
 
       const { url } = await response.json();
@@ -159,7 +184,9 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Welcome, {profile.full_name}!</h1>
+        <h1 className="text-3xl font-bold text-gray-900">
+          Welcome, {profile.full_name || 'Player'}!
+        </h1>
         <p className="mt-2 text-gray-600">
           Play golf, track scores, and support charities.
         </p>
@@ -168,7 +195,27 @@ export default function DashboardPage() {
       {/* Dashboard Grid: 5 Modules */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Module 1: Subscription Status */}
-        <SubscriptionStatus profile={profile} onUpgradeClick={handleSubscribeClick} />
+        <SubscriptionStatus 
+          profile={profile} 
+          onUpgradeClick={handleSubscribeClick}
+          onCancelSuccess={() => {
+            // Refetch profile to update subscription status
+            const fetchUpdatedProfile = async () => {
+              try {
+                const profileResponse = await fetch('/api/profile/get');
+                if (profileResponse.ok) {
+                  const { profile: updatedProfile } = await profileResponse.json();
+                  if (updatedProfile) {
+                    setProfile(updatedProfile);
+                  }
+                }
+              } catch (error) {
+                console.error('Error refetching profile:', error);
+              }
+            };
+            fetchUpdatedProfile();
+          }}
+        />
 
         {/* Module 2: Charity Selection */}
         <CharitySelector
@@ -176,6 +223,7 @@ export default function DashboardPage() {
           selectedId={profile.charity_id}
           selectedPercentage={profile.charity_percentage}
           onUpdate={handleCharityUpdate}
+          hasActiveSubscription={profile.subscription_status === 'active'}
         />
 
         {/* Module 3: Score Entry */}
@@ -186,7 +234,7 @@ export default function DashboardPage() {
           />
           {profile.subscription_status !== 'active' && (
             <p className="mt-2 text-sm text-yellow-700">
-              ⚠️ Score entry is disabled. Please activate your subscription to enter scores.
+              Score entry is disabled. Please activate your subscription to enter scores.
             </p>
           )}
         </div>
@@ -202,7 +250,7 @@ export default function DashboardPage() {
           <div className="mt-4 space-y-4">
             <div>
               <p className="text-sm text-gray-600">Total Winnings</p>
-              <p className="mt-1 text-3xl font-bold text-green-600">₹0.00</p>
+              <p className="mt-1 text-3xl font-bold text-green-600">Rs 0.00</p>
             </div>
             <div className="rounded-lg bg-gray-50 p-4">
               <p className="text-sm text-gray-600">

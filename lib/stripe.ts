@@ -1,12 +1,14 @@
 import Stripe from 'stripe';
+import { getPublicAppUrl, getStripeSecretKey } from '@/lib/env';
 
 const apiVersion = '2023-10-16' as const;
+const appUrl = getPublicAppUrl();
 
 /**
  * Initialize Stripe with secret key
  * Only for server-side use (API routes)
  */
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+export const stripe = new Stripe(getStripeSecretKey(), {
   apiVersion,
 });
 
@@ -27,8 +29,8 @@ export async function createCheckoutSession(
       },
     ],
     mode: 'subscription',
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
+    success_url: `${appUrl}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${appUrl}/dashboard`,
     metadata: {
       userId,
     },

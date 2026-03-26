@@ -1,8 +1,3 @@
-/**
- * Shared layout for auth pages (login, signup)
- * Not protected — anyone can access
- */
-
 export default function AuthLayout({
   children,
 }: {

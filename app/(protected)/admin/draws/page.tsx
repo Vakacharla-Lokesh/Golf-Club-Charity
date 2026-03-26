@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { supabase } from '@/lib/db';
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { supabase } from "@/lib/db";
 
 interface Draw {
   id: string;
   draw_date: string;
-  status: 'draft' | 'simulated' | 'published';
+  status: "draft" | "simulated" | "published";
   winning_numbers: number[] | null;
   draw_type: string;
   created_at: string;
@@ -16,15 +16,18 @@ interface Draw {
 export default function AdminDrawsPage() {
   const [draws, setDraws] = useState<Draw[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   useEffect(() => {
     const fetchDraws = async () => {
       try {
-        let query = supabase.from('draws').select('*').order('draw_date', { ascending: false });
+        let query = supabase
+          .from("draws")
+          .select("*")
+          .order("draw_date", { ascending: false });
 
-        if (statusFilter !== 'all') {
-          query = query.eq('status', statusFilter);
+        if (statusFilter !== "all") {
+          query = query.eq("status", statusFilter);
         }
 
         const { data, error } = await query;
@@ -32,7 +35,7 @@ export default function AdminDrawsPage() {
         if (error) throw error;
         setDraws(data || []);
       } catch (error) {
-        console.error('Error fetching draws:', error);
+        console.error("Error fetching draws:", error);
       } finally {
         setIsLoading(false);
       }
@@ -43,9 +46,9 @@ export default function AdminDrawsPage() {
 
   const getStatusBadge = (status: string) => {
     const badges = {
-      draft: 'bg-gray-100 text-gray-800',
-      simulated: 'bg-yellow-100 text-yellow-800',
-      published: 'bg-green-100 text-green-800',
+      draft: "bg-gray-100 text-gray-800",
+      simulated: "bg-yellow-100 text-yellow-800",
+      published: "bg-green-100 text-green-800",
     };
     return badges[status as keyof typeof badges] || badges.draft;
   };
@@ -56,10 +59,10 @@ export default function AdminDrawsPage() {
       tomorrow.setDate(tomorrow.getDate() + 1);
 
       const { data, error } = await supabase
-        .from('draws')
+        .from("draws")
         .insert({
-          draw_date: tomorrow.toISOString().split('T')[0],
-          status: 'draft',
+          draw_date: tomorrow.toISOString().split("T")[0],
+          status: "draft",
         })
         .select()
         .single();
@@ -67,10 +70,10 @@ export default function AdminDrawsPage() {
       if (error) throw error;
 
       setDraws([data, ...draws]);
-      alert('Draw created successfully!');
+      alert("Draw created successfully!");
     } catch (error) {
-      console.error('Error creating draw:', error);
-      alert('Failed to create draw');
+      console.error("Error creating draw:", error);
+      alert("Failed to create draw");
     }
   };
 
@@ -80,7 +83,10 @@ export default function AdminDrawsPage() {
         <div className="h-12 w-48 animate-pulse rounded-lg bg-gray-300" />
         <div className="grid gap-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-20 animate-pulse rounded-lg bg-gray-300" />
+            <div
+              key={i}
+              className="h-20 animate-pulse rounded-lg bg-gray-300"
+            />
           ))}
         </div>
       </div>
@@ -93,7 +99,9 @@ export default function AdminDrawsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Manage Draws</h1>
-          <p className="mt-2 text-gray-600">Create, simulate, and publish lottery draws.</p>
+          <p className="mt-2 text-gray-600">
+            Create, simulate, and publish lottery draws.
+          </p>
         </div>
         <button
           onClick={handleCreateDraw}
@@ -105,14 +113,14 @@ export default function AdminDrawsPage() {
 
       {/* Status Filter */}
       <div className="flex gap-2">
-        {['all', 'draft', 'simulated', 'published'].map((status) => (
+        {["all", "draft", "simulated", "published"].map((status) => (
           <button
             key={status}
             onClick={() => setStatusFilter(status)}
             className={`rounded-lg px-4 py-2 font-medium transition-colors ${
               statusFilter === status
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200 text-gray-900 hover:bg-gray-300"
             }`}
           >
             {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -144,7 +152,7 @@ export default function AdminDrawsPage() {
                   </div>
                   <span
                     className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${getStatusBadge(
-                      draw.status
+                      draw.status,
                     )}`}
                   >
                     {draw.status.charAt(0).toUpperCase() + draw.status.slice(1)}
@@ -154,7 +162,7 @@ export default function AdminDrawsPage() {
 
               {/* Actions */}
               <div className="flex gap-2">
-                {draw.status === 'draft' && (
+                {draw.status === "draft" && (
                   <Link href={`/admin/draws/${draw.id}/simulate`}>
                     <button className="rounded-lg bg-yellow-600 px-4 py-2 text-sm font-medium text-white hover:bg-yellow-700">
                       Simulate
@@ -162,7 +170,7 @@ export default function AdminDrawsPage() {
                   </Link>
                 )}
 
-                {draw.status === 'simulated' && (
+                {draw.status === "simulated" && (
                   <Link href={`/admin/draws/${draw.id}/publish`}>
                     <button className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700">
                       Publish
@@ -170,7 +178,8 @@ export default function AdminDrawsPage() {
                   </Link>
                 )}
 
-                {(draw.status === 'simulated' || draw.status === 'published') && (
+                {(draw.status === "simulated" ||
+                  draw.status === "published") && (
                   <Link href={`/admin/draws/${draw.id}`}>
                     <button className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
                       View

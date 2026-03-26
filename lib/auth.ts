@@ -1,6 +1,7 @@
 /**
  * Authentication helper functions
  */
+import { getAdminEmails } from '@/lib/env';
 
 /**
  * Check if user email is in admin list
@@ -9,12 +10,8 @@
 export function isAdmin(userEmail: string | undefined): boolean {
   if (!userEmail) return false;
 
-  const adminEmails = (process.env.ADMIN_EMAILS || '')
-    .split(',')
-    .map((email) => email.trim())
-    .filter((email) => email.length > 0);
-
-  return adminEmails.includes(userEmail);
+  const normalizedUserEmail = userEmail.trim().toLowerCase();
+  return getAdminEmails().includes(normalizedUserEmail);
 }
 
 /**

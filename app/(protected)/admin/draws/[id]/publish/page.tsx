@@ -1,15 +1,14 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { supabase } from '@/lib/db';
-import { PRIZE_SPLIT } from '@/lib/constants';
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { supabase } from "@/lib/db";
 
 interface Draw {
   id: string;
   draw_date: string;
-  status: 'draft' | 'simulated' | 'published';
+  status: "draft" | "simulated" | "published";
   winning_numbers: number[] | null;
 }
 
@@ -45,14 +44,14 @@ export default function DrawPublishPage() {
       try {
         // Fetch draw
         const { data: drawData, error: drawError } = await supabase
-          .from('draws')
-          .select('*')
-          .eq('id', drawId)
+          .from("draws")
+          .select("*")
+          .eq("id", drawId)
           .single();
 
         if (drawError || !drawData) {
-          alert('Draw not found');
-          router.push('/admin/draws');
+          alert("Draw not found");
+          router.push("/admin/draws");
           return;
         }
 
@@ -60,24 +59,24 @@ export default function DrawPublishPage() {
 
         // Fetch results
         const { data: resultsData } = await supabase
-          .from('draw_results')
-          .select('*')
-          .eq('draw_id', drawId);
+          .from("draw_results")
+          .select("*")
+          .eq("draw_id", drawId);
 
         setResults(resultsData || []);
 
         // Fetch prize pool
         const { data: poolData } = await supabase
-          .from('prize_pools')
-          .select('*')
-          .eq('draw_id', drawId)
+          .from("prize_pools")
+          .select("*")
+          .eq("draw_id", drawId)
           .single();
 
         if (poolData) {
           setPrizePool(poolData);
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error("Error fetching data:", error);
       } finally {
         setIsLoading(false);
       }
@@ -94,15 +93,15 @@ export default function DrawPublishPage() {
       const token = session.data.session?.access_token;
 
       if (!token) {
-        alert('Not authenticated');
+        alert("Not authenticated");
         return;
       }
 
       // 1. Publish draw (creates entries and results)
-      const publishResponse = await fetch('/api/draws/publish', {
-        method: 'POST',
+      const publishResponse = await fetch("/api/draws/publish", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ drawId }),
@@ -110,16 +109,16 @@ export default function DrawPublishPage() {
 
       if (!publishResponse.ok) {
         const error = await publishResponse.json();
-        throw new Error(error.error || 'Publish failed');
+        throw new Error(error.error || "Publish failed");
       }
 
       const publishData = await publishResponse.json();
 
       // 2. Calculate prize pools
-      const prizeResponse = await fetch('/api/draws/prize-calculate', {
-        method: 'POST',
+      const prizeResponse = await fetch("/api/draws/prize-calculate", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ drawId }),
@@ -127,20 +126,22 @@ export default function DrawPublishPage() {
 
       if (!prizeResponse.ok) {
         const error = await prizeResponse.json();
-        throw new Error(error.error || 'Prize calculation failed');
+        throw new Error(error.error || "Prize calculation failed");
       }
 
       alert(
         `Draw published successfully!\n\nWinners by tier:\n` +
-        `Tier 5 (5 matches): ${publishData.winnersByTier.tier5}\n` +
-        `Tier 4 (4 matches): ${publishData.winnersByTier.tier4}\n` +
-        `Tier 3 (3 matches): ${publishData.winnersByTier.tier3}`
+          `Tier 5 (5 matches): ${publishData.winnersByTier.tier5}\n` +
+          `Tier 4 (4 matches): ${publishData.winnersByTier.tier4}\n` +
+          `Tier 3 (3 matches): ${publishData.winnersByTier.tier3}`,
       );
 
       setTimeout(() => router.push(`/admin/winners?drawId=${drawId}`), 2000);
     } catch (error) {
-      console.error('Error publishing draw:', error);
-      alert(`Failed to publish draw: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Error publishing draw:", error);
+      alert(
+        `Failed to publish draw: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     } finally {
       setIsPublishing(false);
     }
@@ -162,7 +163,10 @@ export default function DrawPublishPage() {
   const tier4Winners = results.filter((r) => r.match_type === 4).length;
   const tier3Winners = results.filter((r) => r.match_type === 3).length;
 
-  const totalPrizePool = (prizePool?.tier_5 || 0) + (prizePool?.tier_4 || 0) + (prizePool?.tier_3 || 0);
+  const totalPrizePool =
+    (prizePool?.tier_5 || 0) +
+    (prizePool?.tier_4 || 0) +
+    (prizePool?.tier_3 || 0);
 
   return (
     <div className="space-y-8">
@@ -183,7 +187,9 @@ export default function DrawPublishPage() {
 
       {/* Draw Info */}
       <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Draw Information</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Draw Information
+        </h3>
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <p className="text-sm text-gray-600">Draw Date</p>
@@ -194,7 +200,7 @@ export default function DrawPublishPage() {
           <div>
             <p className="text-sm text-gray-600">Winning Numbers</p>
             <p className="mt-1 text-lg font-semibold text-gray-900 font-mono">
-              {draw.winning_numbers?.join(', ') || 'Not generated'}
+              {draw.winning_numbers?.join(", ") || "Not generated"}
             </p>
           </div>
         </div>
@@ -204,25 +210,39 @@ export default function DrawPublishPage() {
       <div className="grid gap-4 md:grid-cols-4">
         <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
           <p className="text-sm text-gray-600">Total Prize Pool</p>
-          <p className="mt-1 text-2xl font-bold text-green-600">₹{totalPrizePool.toFixed(2)}</p>
+          <p className="mt-1 text-2xl font-bold text-green-600">
+            ₹{totalPrizePool.toFixed(2)}
+          </p>
         </div>
 
         <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
           <p className="text-sm text-gray-600">5-Match Winners</p>
-          <p className="mt-1 text-2xl font-bold text-blue-600">{tier5Winners}</p>
-          <p className="text-xs text-gray-500 mt-1">₹{(prizePool?.tier_5 || 0).toFixed(2)} (40%)</p>
+          <p className="mt-1 text-2xl font-bold text-blue-600">
+            {tier5Winners}
+          </p>
+          <p className="text-xs text-gray-500 mt-1">
+            ₹{(prizePool?.tier_5 || 0).toFixed(2)} (40%)
+          </p>
         </div>
 
         <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
           <p className="text-sm text-gray-600">4-Match Winners</p>
-          <p className="mt-1 text-2xl font-bold text-purple-600">{tier4Winners}</p>
-          <p className="text-xs text-gray-500 mt-1">₹{(prizePool?.tier_4 || 0).toFixed(2)} (35%)</p>
+          <p className="mt-1 text-2xl font-bold text-purple-600">
+            {tier4Winners}
+          </p>
+          <p className="text-xs text-gray-500 mt-1">
+            ₹{(prizePool?.tier_4 || 0).toFixed(2)} (35%)
+          </p>
         </div>
 
         <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
           <p className="text-sm text-gray-600">3-Match Winners</p>
-          <p className="mt-1 text-2xl font-bold text-orange-600">{tier3Winners}</p>
-          <p className="text-xs text-gray-500 mt-1">₹{(prizePool?.tier_3 || 0).toFixed(2)} (25%)</p>
+          <p className="mt-1 text-2xl font-bold text-orange-600">
+            {tier3Winners}
+          </p>
+          <p className="text-xs text-gray-500 mt-1">
+            ₹{(prizePool?.tier_3 || 0).toFixed(2)} (25%)
+          </p>
         </div>
       </div>
 
@@ -234,16 +254,25 @@ export default function DrawPublishPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
-                  <th className="px-4 py-2 text-left font-semibold text-gray-700">User ID</th>
-                  <th className="px-4 py-2 text-center font-semibold text-gray-700">Match Type</th>
-                  <th className="px-4 py-2 text-right font-semibold text-gray-700">Prize Amount (₹)</th>
+                  <th className="px-4 py-2 text-left font-semibold text-gray-700">
+                    User ID
+                  </th>
+                  <th className="px-4 py-2 text-center font-semibold text-gray-700">
+                    Match Type
+                  </th>
+                  <th className="px-4 py-2 text-right font-semibold text-gray-700">
+                    Prize Amount (₹)
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {results
                   .sort((a, b) => b.match_type - a.match_type)
                   .map((result) => (
-                    <tr key={result.id} className="border-b border-gray-100">
+                    <tr
+                      key={result.id}
+                      className="border-b border-gray-100"
+                    >
                       <td className="px-4 py-2 font-mono text-gray-600">
                         {result.user_id.slice(0, 12)}...
                       </td>
@@ -264,14 +293,14 @@ export default function DrawPublishPage() {
       )}
 
       {/* Action Buttons */}
-      {draw.status === 'simulated' && (
+      {draw.status === "simulated" && (
         <div className="flex gap-4">
           <button
             onClick={handlePublish}
             disabled={isPublishing}
             className="flex-1 rounded-lg bg-green-600 px-6 py-3 font-semibold text-white hover:bg-green-700 disabled:opacity-50"
           >
-            {isPublishing ? 'Publishing...' : 'Publish Draw Now'}
+            {isPublishing ? "Publishing..." : "Publish Draw Now"}
           </button>
           <Link href={`/admin/draws/${draw.id}/simulate`}>
             <button className="rounded-lg border border-gray-300 px-6 py-3 font-semibold text-gray-900 hover:bg-gray-50">
@@ -281,7 +310,7 @@ export default function DrawPublishPage() {
         </div>
       )}
 
-      {draw.status === 'published' && (
+      {draw.status === "published" && (
         <div className="rounded-lg bg-green-50 border border-green-200 p-6">
           <h3 className="font-semibold text-green-900">✓ Draw Published</h3>
           <p className="mt-2 text-green-800">

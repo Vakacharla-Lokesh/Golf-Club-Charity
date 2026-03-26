@@ -1,9 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { supabaseAdmin } from '@/lib/db';
+import { getStripeWebhookSecret } from '@/lib/env';
+import {
+  activateSubscriptionForUser,
+  deactivateSubscriptionForUser,
+  resolvePlanFromPriceId,
+} from '@/lib/subscriptions';
 import Stripe from 'stripe';
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
+const webhookSecret = getStripeWebhookSecret();
+
+function getAuthUserIdFromSubscriptionRow(
+  profiles: Array<{ auth_user_id: string }>
+): string | null {
+  return profiles[0]?.auth_user_id ?? null;
+}
 
 export async function POST(request: NextRequest) {
   if (!webhookSecret) {
@@ -75,10 +87,10 @@ export async function POST(request: NextRequest) {
 async function handleCheckoutSessionCompleted(
   session: Stripe.Checkout.Session
 ): Promise<void> {
-  const userId = session.metadata?.userId;
+  const authUserId = session.metadata?.userId;
   const subscriptionId = session.subscription as string;
 
-  if (!userId || !subscriptionId) {
+  if (!authUserId || !subscriptionId) {
     console.error('Missing userId or subscriptionId in session metadata');
     return;
   }
@@ -89,36 +101,19 @@ async function handleCheckoutSessionCompleted(
   // Determine plan based on price
   const lineItem = subscription.items.data[0];
   const price = await stripe.prices.retrieve(lineItem.price.id);
-  const plan = price.recurring?.interval === 'month' ? 'monthly' : 'yearly';
+  const plan = resolvePlanFromPriceId(price.id);
 
-  // Update subscriptions table
-  const { error } = await supabaseAdmin
-    .from('subscriptions')
-    .upsert({
-      user_id: userId,
+  try {
+    await activateSubscriptionForUser(supabaseAdmin, authUserId, {
+      amount: (price.unit_amount || 0) / 100,
+      currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
       plan,
-      amount: (price.unit_amount || 0) / 100, // Convert to decimal
-      status: 'active',
-      stripe_subscription_id: subscriptionId,
-      current_period_end: new Date(
-        subscription.current_period_end * 1000
-      ).toISOString(),
+      stripeCustomerId: session.customer as string,
+      stripeSubscriptionId: subscriptionId,
     });
-
-  if (error) {
-    console.error('Error updating subscriptions table:', error);
-    return;
+  } catch (error) {
+    console.error('Error activating subscription:', error);
   }
-
-  // Update profiles table
-  await supabaseAdmin
-    .from('profiles')
-    .update({
-      subscription_status: 'active',
-      subscription_plan: plan,
-      stripe_customer_id: session.customer as string,
-    })
-    .eq('id', userId);
 }
 
 /**
@@ -133,7 +128,7 @@ async function handleSubscriptionDeleted(
   // Find user by subscription ID
   const { data, error } = await supabaseAdmin
     .from('subscriptions')
-    .select('user_id')
+    .select('profiles!inner(auth_user_id)')
     .eq('stripe_subscription_id', subscriptionId)
     .single();
 
@@ -142,19 +137,19 @@ async function handleSubscriptionDeleted(
     return;
   }
 
-  const userId = data.user_id;
+  const authUserId = getAuthUserIdFromSubscriptionRow(
+    data.profiles as Array<{ auth_user_id: string }>
+  );
 
-  // Update subscription status
-  await supabaseAdmin
-    .from('subscriptions')
-    .update({ status: 'cancelled' })
-    .eq('stripe_subscription_id', subscriptionId);
+  if (!authUserId) {
+    console.error('Auth user not found for subscription:', subscriptionId);
+    return;
+  }
 
-  // Update profile
-  await supabaseAdmin
-    .from('profiles')
-    .update({ subscription_status: 'cancelled' })
-    .eq('id', userId);
+  await deactivateSubscriptionForUser(supabaseAdmin, authUserId, {
+    nextSubscriptionStatus: 'cancelled',
+    stripeSubscriptionId: subscriptionId,
+  });
 }
 
 /**
@@ -171,7 +166,7 @@ async function handlePaymentFailed(invoice: Stripe.Invoice): Promise<void> {
   // Find user by subscription ID
   const { data, error } = await supabaseAdmin
     .from('subscriptions')
-    .select('user_id')
+    .select('profiles!inner(auth_user_id)')
     .eq('stripe_subscription_id', subscriptionId)
     .single();
 
@@ -180,17 +175,17 @@ async function handlePaymentFailed(invoice: Stripe.Invoice): Promise<void> {
     return;
   }
 
-  const userId = data.user_id;
+  const authUserId = getAuthUserIdFromSubscriptionRow(
+    data.profiles as Array<{ auth_user_id: string }>
+  );
 
-  // Update subscription status
-  await supabaseAdmin
-    .from('subscriptions')
-    .update({ status: 'lapsed' })
-    .eq('stripe_subscription_id', subscriptionId);
+  if (!authUserId) {
+    console.error('Auth user not found for payment failure:', subscriptionId);
+    return;
+  }
 
-  // Update profile
-  await supabaseAdmin
-    .from('profiles')
-    .update({ subscription_status: 'lapsed' })
-    .eq('id', userId);
+  await deactivateSubscriptionForUser(supabaseAdmin, authUserId, {
+    nextSubscriptionStatus: 'lapsed',
+    stripeSubscriptionId: subscriptionId,
+  });
 }

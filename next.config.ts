@@ -7,6 +7,14 @@ const nextConfig: NextConfig = {
   },
   // Use standalone output for production - all routes rendered on-demand
   output: 'standalone',
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'via.placeholder.com',
+      },
+    ],
+  },
 };
 
 export default nextConfig;

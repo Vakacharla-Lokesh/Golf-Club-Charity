@@ -1,21 +1,21 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { signupSchema, type SignupInput } from '@/lib/validators';
-import { z } from 'zod';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { signupSchema } from "@/lib/validators";
+import { z } from "zod";
 
 export default function SignupPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [generalError, setGeneralError] = useState('');
+  const [generalError, setGeneralError] = useState("");
 
   const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    password: '',
+    fullName: "",
+    email: "",
+    password: "",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -34,7 +34,7 @@ export default function SignupPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    setGeneralError('');
+    setGeneralError("");
     setErrors({});
 
     try {
@@ -46,28 +46,37 @@ export default function SignupPage() {
       });
 
       // Call signup API
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(validated),
       });
 
       const result = await response.json();
 
       if (!response.ok) {
-        setGeneralError(result.error || 'Signup failed');
+        setGeneralError(result.error || "Signup failed");
         return;
       }
 
-      // Success — redirect to dashboard
-      router.push('/dashboard');
+      // Set session cookies for proxy authentication
+      if (result.session) {
+        await fetch("/api/auth/set-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(result.session),
+        });
+      }
+
+      // Success: Redirect to dashboard
+      router.push("/dashboard");
     } catch (error) {
       if (error instanceof z.ZodError) {
         // Validation errors
         const fieldErrors: Record<string, string> = {};
         error.errors.forEach((err) => {
           const path = err.path[0];
-          if (typeof path === 'string') {
+          if (typeof path === "string") {
             fieldErrors[path] = err.message;
           }
         });
@@ -75,7 +84,7 @@ export default function SignupPage() {
       } else if (error instanceof Error) {
         setGeneralError(error.message);
       } else {
-        setGeneralError('An unexpected error occurred');
+        setGeneralError("An unexpected error occurred");
       }
     } finally {
       setIsLoading(false);
@@ -83,18 +92,24 @@ export default function SignupPage() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-4"
+    >
       <h2 className="text-xl font-semibold text-gray-900">Create account</h2>
 
       {generalError && (
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+        <div className="rounded-lg bg-red-100 p-3 text-sm font-medium text-red-900">
           {generalError}
         </div>
       )}
 
       {/* Full Name */}
       <div>
-        <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
+        <label
+          htmlFor="fullName"
+          className="block text-sm font-medium text-gray-700"
+        >
           Full Name
         </label>
         <input
@@ -104,7 +119,7 @@ export default function SignupPage() {
           value={formData.fullName}
           onChange={handleChange}
           disabled={isLoading}
-          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50"
+          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50"
           placeholder="John Doe"
         />
         {errors.fullName && (
@@ -114,7 +129,10 @@ export default function SignupPage() {
 
       {/* Email */}
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+        <label
+          htmlFor="email"
+          className="block text-sm font-medium text-gray-700"
+        >
           Email
         </label>
         <input
@@ -124,7 +142,7 @@ export default function SignupPage() {
           value={formData.email}
           onChange={handleChange}
           disabled={isLoading}
-          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50"
+          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50"
           placeholder="you@example.com"
         />
         {errors.email && (
@@ -134,7 +152,10 @@ export default function SignupPage() {
 
       {/* Password */}
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+        <label
+          htmlFor="password"
+          className="block text-sm font-medium text-gray-700"
+        >
           Password
         </label>
         <input
@@ -144,7 +165,7 @@ export default function SignupPage() {
           value={formData.password}
           onChange={handleChange}
           disabled={isLoading}
-          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50"
+          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50"
           placeholder="••••••"
         />
         {errors.password && (
@@ -158,13 +179,16 @@ export default function SignupPage() {
         disabled={isLoading}
         className="w-full rounded-lg bg-blue-600 py-2 font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
       >
-        {isLoading ? 'Creating account...' : 'Sign up'}
+        {isLoading ? "Creating account..." : "Sign up"}
       </button>
 
       {/* Login Link */}
       <p className="text-center text-sm text-gray-600">
-        Already have an account?{' '}
-        <Link href="/login" className="text-blue-600 hover:underline">
+        Already have an account?{" "}
+        <Link
+          href="/login"
+          className="text-blue-600 hover:underline"
+        >
           Log in
         </Link>
       </p>
