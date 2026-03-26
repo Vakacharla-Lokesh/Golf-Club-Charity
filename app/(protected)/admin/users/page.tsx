@@ -1,22 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/db";
 
 interface UserRow {
   id: string;
   auth_user_id: string;
   full_name: string;
   email: string;
-  subscription_status: string;
-  subscription_plan: string | null;
-  created_at: string;
-}
-
-interface ProfileRow {
-  id: string;
-  auth_user_id: string;
-  full_name: string;
   subscription_status: string;
   subscription_plan: string | null;
   created_at: string;
@@ -30,28 +20,14 @@ export default function AdminUsersPage() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const { data } = await supabase
-          .from("profiles")
-          .select(
-            "id, auth_user_id, full_name, subscription_status, subscription_plan, created_at",
-          )
-          .order("created_at", { ascending: false });
+        const response = await fetch('/api/admin/users');
 
-        const profiles = (data ?? []) as ProfileRow[];
-        const { data: authUsers } = await supabase.auth.admin.listUsers();
-        const emailByAuthUserId = new Map(
-          (authUsers?.users ?? []).map((user) => [
-            user.id,
-            user.email ?? "N/A",
-          ]),
-        );
+        if (!response.ok) {
+          throw new Error(`Failed to fetch users: ${response.statusText}`);
+        }
 
-        const enrichedUsers = profiles.map((profile) => ({
-          ...profile,
-          email: emailByAuthUserId.get(profile.auth_user_id) ?? "N/A",
-        }));
-
-        setUsers(enrichedUsers);
+        const { data } = await response.json();
+        setUsers(data ?? []);
       } catch (error) {
         console.error("Error fetching users:", error);
       } finally {

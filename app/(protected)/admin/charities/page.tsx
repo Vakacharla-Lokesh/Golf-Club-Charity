@@ -14,10 +14,17 @@ export default function AdminCharitiesPage() {
   useEffect(() => {
     const fetchCharities = async () => {
       try {
-        const { data } = await supabase.from("charities").select("*");
+        const response = await fetch('/api/admin/charities');
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch charities: ${response.statusText}`);
+        }
+
+        const { data } = await response.json();
         setCharities(data || []);
       } catch (error) {
         console.error("Error fetching charities:", error);
+        toast.error("Failed to load charities");
       } finally {
         setIsLoading(false);
       }
